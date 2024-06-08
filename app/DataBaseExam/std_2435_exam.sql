@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Хост: std-mysql
--- Время создания: Июн 08 2024 г., 11:37
+-- Время создания: Июн 08 2024 г., 12:59
 -- Версия сервера: 5.7.26-0ubuntu0.16.04.1
 -- Версия PHP: 8.1.15
 
@@ -151,6 +151,18 @@ CREATE TABLE `role` (
   `description` text NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+--
+-- Дамп данных таблицы `role`
+--
+
+INSERT INTO `role` (`id`, `name`, `description`) VALUES
+(1, 'admin', 'Администратор'),
+(2, 'moderator', 'Модератор'),
+(3, 'user', 'Пользователь'),
+(4, 'admin', 'Администратор'),
+(5, 'moderator', 'Модератор'),
+(6, 'user', 'Пользователь');
+
 -- --------------------------------------------------------
 
 --
@@ -168,7 +180,9 @@ CREATE TABLE `roles` (
 --
 
 INSERT INTO `roles` (`id`, `name`, `description`) VALUES
-(1, 'admin', 'Администратор');
+(1, 'admin', 'Администратор'),
+(2, 'moderator', 'Модератор'),
+(3, 'user', 'Пользователь');
 
 -- --------------------------------------------------------
 
@@ -185,6 +199,15 @@ CREATE TABLE `user` (
   `middle_name` varchar(255) DEFAULT NULL,
   `role_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Дамп данных таблицы `user`
+--
+
+INSERT INTO `user` (`id`, `login`, `password_hash`, `last_name`, `first_name`, `middle_name`, `role_id`) VALUES
+(1, 'admin', 'scrypt:32768:8:1$od0F7De4O7kjibo9$910c3a3bf25a7b9e11f21e7ab89a93ae2050635590ccde3537154287690d24297e4c8a78dea04514d60ba7ac25aefd842af795a105290329e67a47afbd656011', 'User', 'Admin', NULL, 1),
+(2, 'moderator', 'scrypt:32768:8:1$bELKGI9iQgeYs8TN$171107487ce4576f1d9ff30328b05ab77448c9c9b6258f509e99daf771b732cdc04816f12450b9d794ab4aa3cde3400f98f2088570ade7fd328f638bc80b6537', 'User', 'Moderator', NULL, 2),
+(3, 'user', 'scrypt:32768:8:1$JlQGjeOWYTAtFzwd$d58e3c9772272829effbae5fec6143462b328d25262e853cd3bb6e118c7647749d19795410f279449814d85bc290812e0e2df50e48abc7b4b83217ba9cf46099', 'User', 'Normal', NULL, 3);
 
 --
 -- Индексы сохранённых таблиц
@@ -321,19 +344,19 @@ ALTER TABLE `review`
 -- AUTO_INCREMENT для таблицы `role`
 --
 ALTER TABLE `role`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT для таблицы `roles`
 --
 ALTER TABLE `roles`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT для таблицы `user`
 --
 ALTER TABLE `user`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Ограничения внешнего ключа сохраненных таблиц
