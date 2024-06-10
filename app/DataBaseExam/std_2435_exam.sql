@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Хост: std-mysql
--- Время создания: Июн 08 2024 г., 12:59
+-- Время создания: Июн 10 2024 г., 15:07
 -- Версия сервера: 5.7.26-0ubuntu0.16.04.1
 -- Версия PHP: 8.1.15
 
@@ -31,22 +31,13 @@ CREATE TABLE `alembic_version` (
   `version_num` varchar(32) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
 --
--- Структура таблицы `book`
+-- Дамп данных таблицы `alembic_version`
 --
 
-CREATE TABLE `book` (
-  `id` int(11) NOT NULL,
-  `title` varchar(255) NOT NULL,
-  `description` text NOT NULL,
-  `year` int(11) NOT NULL,
-  `publisher` varchar(255) NOT NULL,
-  `author` varchar(255) NOT NULL,
-  `pages` int(11) NOT NULL,
-  `cover_id` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+INSERT INTO `alembic_version` (`version_num`) VALUES
+('3084128ca99f'),
+('b1efd846b312');
 
 -- --------------------------------------------------------
 
@@ -58,12 +49,21 @@ CREATE TABLE `books` (
   `id` int(11) NOT NULL,
   `title` varchar(255) NOT NULL,
   `description` text NOT NULL,
-  `year` year(4) NOT NULL,
+  `year` int(11) NOT NULL,
   `publisher` varchar(255) NOT NULL,
   `author` varchar(255) NOT NULL,
   `pages` int(11) NOT NULL,
-  `cover_id` int(11) DEFAULT NULL
+  `cover_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Дамп данных таблицы `books`
+--
+
+INSERT INTO `books` (`id`, `title`, `description`, `year`, `publisher`, `author`, `pages`, `cover_id`) VALUES
+(1, 'аааа', 'ааа', 124, 'ааа', 'ааа', 124, 1),
+(2, 'аааа', 'ааа', 124, 'ааа', 'ааа', 124, 1),
+(3, 'аааа', 'ааа', 123, 'ааа', 'ааа', 123, 2);
 
 -- --------------------------------------------------------
 
@@ -79,19 +79,6 @@ CREATE TABLE `books_genres` (
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `cover`
---
-
-CREATE TABLE `cover` (
-  `id` int(11) NOT NULL,
-  `filename` varchar(255) NOT NULL,
-  `mime_type` varchar(255) NOT NULL,
-  `md5_hash` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
 -- Структура таблицы `covers`
 --
 
@@ -102,16 +89,13 @@ CREATE TABLE `covers` (
   `md5_hash` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
 --
--- Структура таблицы `genre`
+-- Дамп данных таблицы `covers`
 --
 
-CREATE TABLE `genre` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+INSERT INTO `covers` (`id`, `filename`, `mime_type`, `md5_hash`) VALUES
+(1, 'AHHAAHA.png', 'image/png', '09ab4b169c3d85bfc13e28009c048c57'),
+(2, 'IMG_0773.JPG', 'image/jpeg', 'f2f0bdc11c527e0fa10269ddf0b5f1c2');
 
 -- --------------------------------------------------------
 
@@ -124,44 +108,36 @@ CREATE TABLE `genres` (
   `name` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+--
+-- Дамп данных таблицы `genres`
+--
+
+INSERT INTO `genres` (`id`, `name`) VALUES
+(4, 'Драма'),
+(3, 'Комедия'),
+(7, 'Мистика'),
+(9, 'Научная фантастика'),
+(2, 'Приключения'),
+(8, 'Романтика'),
+(10, 'Триллер'),
+(6, 'Ужасы'),
+(5, 'Фэнтези'),
+(1, 'Экшен');
+
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `review`
+-- Структура таблицы `reviews`
 --
 
-CREATE TABLE `review` (
+CREATE TABLE `reviews` (
   `id` int(11) NOT NULL,
-  `book_id` int(11) DEFAULT NULL,
-  `user_id` int(11) DEFAULT NULL,
+  `book_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
   `rating` int(11) NOT NULL,
   `text` text NOT NULL,
-  `date_added` datetime DEFAULT NULL
+  `date_added` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Структура таблицы `role`
---
-
-CREATE TABLE `role` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `description` text NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
---
--- Дамп данных таблицы `role`
---
-
-INSERT INTO `role` (`id`, `name`, `description`) VALUES
-(1, 'admin', 'Администратор'),
-(2, 'moderator', 'Модератор'),
-(3, 'user', 'Пользователь'),
-(4, 'admin', 'Администратор'),
-(5, 'moderator', 'Модератор'),
-(6, 'user', 'Пользователь');
 
 -- --------------------------------------------------------
 
@@ -180,34 +156,34 @@ CREATE TABLE `roles` (
 --
 
 INSERT INTO `roles` (`id`, `name`, `description`) VALUES
-(1, 'admin', 'Администратор'),
-(2, 'moderator', 'Модератор'),
-(3, 'user', 'Пользователь');
+(1, 'admin', 'admin'),
+(2, 'moderator', 'moderator'),
+(3, 'user', 'user');
 
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `user`
+-- Структура таблицы `users`
 --
 
-CREATE TABLE `user` (
+CREATE TABLE `users` (
   `id` int(11) NOT NULL,
   `login` varchar(255) NOT NULL,
   `password_hash` varchar(255) NOT NULL,
   `last_name` varchar(255) NOT NULL,
   `first_name` varchar(255) NOT NULL,
-  `middle_name` varchar(255) DEFAULT NULL,
-  `role_id` int(11) DEFAULT NULL
+  `middle_name` varchar(255) NOT NULL,
+  `role_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
--- Дамп данных таблицы `user`
+-- Дамп данных таблицы `users`
 --
 
-INSERT INTO `user` (`id`, `login`, `password_hash`, `last_name`, `first_name`, `middle_name`, `role_id`) VALUES
-(1, 'admin', 'scrypt:32768:8:1$od0F7De4O7kjibo9$910c3a3bf25a7b9e11f21e7ab89a93ae2050635590ccde3537154287690d24297e4c8a78dea04514d60ba7ac25aefd842af795a105290329e67a47afbd656011', 'User', 'Admin', NULL, 1),
-(2, 'moderator', 'scrypt:32768:8:1$bELKGI9iQgeYs8TN$171107487ce4576f1d9ff30328b05ab77448c9c9b6258f509e99daf771b732cdc04816f12450b9d794ab4aa3cde3400f98f2088570ade7fd328f638bc80b6537', 'User', 'Moderator', NULL, 2),
-(3, 'user', 'scrypt:32768:8:1$JlQGjeOWYTAtFzwd$d58e3c9772272829effbae5fec6143462b328d25262e853cd3bb6e118c7647749d19795410f279449814d85bc290812e0e2df50e48abc7b4b83217ba9cf46099', 'User', 'Normal', NULL, 3);
+INSERT INTO `users` (`id`, `login`, `password_hash`, `last_name`, `first_name`, `middle_name`, `role_id`) VALUES
+(1, 'admin', 'scrypt:32768:8:1$ch6f8WAscSEB0Gih$f7e18333f9d381e8bab13bae7c4b8479bca274df7751b392b5e438702493e6801c0c0ccfa0f205ca6f0d6882eff392fc84bae8d042594772d131751b833c016e', 'Хромов', 'Илья', '', 1),
+(2, 'moderator', 'scrypt:32768:8:1$Dc1YosdTUZfhPFtV$a42d5137256e0cc90f68552af7b85a7071624c4fb780f6510bf1de835d53a933d0ac8926888e06dc6c52c52b84caff28ca5890feeea7e8a79b452cb38414dc56', 'Савинкин', 'Илья', '', 2),
+(3, 'user', 'scrypt:32768:8:1$EV6Vt2yM0kjaSjd1$5910986e3942200e2ed8058dc4b640470aafe62c06645b921171ac1c84b561bc772c7d8d06c60eb852047c5d2abbd79c26b11ee5b7080d7fef73f02b0ee33a02', 'Гуржам', 'Хачапури', '', 3);
 
 --
 -- Индексы сохранённых таблиц
@@ -220,31 +196,18 @@ ALTER TABLE `alembic_version`
   ADD PRIMARY KEY (`version_num`);
 
 --
--- Индексы таблицы `book`
---
-ALTER TABLE `book`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `cover_id` (`cover_id`);
-
---
 -- Индексы таблицы `books`
 --
 ALTER TABLE `books`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `cover_id` (`cover_id`);
+  ADD KEY `fk_books_cover_id_covers` (`cover_id`);
 
 --
 -- Индексы таблицы `books_genres`
 --
 ALTER TABLE `books_genres`
   ADD PRIMARY KEY (`book_id`,`genre_id`),
-  ADD KEY `genre_id` (`genre_id`);
-
---
--- Индексы таблицы `cover`
---
-ALTER TABLE `cover`
-  ADD PRIMARY KEY (`id`);
+  ADD KEY `fk_books_genres_genre_id_genres` (`genre_id`);
 
 --
 -- Индексы таблицы `covers`
@@ -253,32 +216,19 @@ ALTER TABLE `covers`
   ADD PRIMARY KEY (`id`);
 
 --
--- Индексы таблицы `genre`
---
-ALTER TABLE `genre`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `name` (`name`);
-
---
 -- Индексы таблицы `genres`
 --
 ALTER TABLE `genres`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `name` (`name`);
+  ADD UNIQUE KEY `uq_genres_name` (`name`);
 
 --
--- Индексы таблицы `review`
+-- Индексы таблицы `reviews`
 --
-ALTER TABLE `review`
+ALTER TABLE `reviews`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `book_id` (`book_id`),
-  ADD KEY `user_id` (`user_id`);
-
---
--- Индексы таблицы `role`
---
-ALTER TABLE `role`
-  ADD PRIMARY KEY (`id`);
+  ADD KEY `fk_reviews_book_id_books` (`book_id`),
+  ADD KEY `fk_reviews_user_id_users` (`user_id`);
 
 --
 -- Индексы таблицы `roles`
@@ -287,64 +237,40 @@ ALTER TABLE `roles`
   ADD PRIMARY KEY (`id`);
 
 --
--- Индексы таблицы `user`
+-- Индексы таблицы `users`
 --
-ALTER TABLE `user`
+ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `login` (`login`),
-  ADD KEY `role_id` (`role_id`);
+  ADD UNIQUE KEY `uq_users_login` (`login`),
+  ADD KEY `fk_users_role_id_roles` (`role_id`);
 
 --
 -- AUTO_INCREMENT для сохранённых таблиц
 --
 
 --
--- AUTO_INCREMENT для таблицы `book`
---
-ALTER TABLE `book`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT для таблицы `books`
 --
 ALTER TABLE `books`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT для таблицы `cover`
---
-ALTER TABLE `cover`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT для таблицы `covers`
 --
 ALTER TABLE `covers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT для таблицы `genre`
---
-ALTER TABLE `genre`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT для таблицы `genres`
 --
 ALTER TABLE `genres`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
--- AUTO_INCREMENT для таблицы `review`
+-- AUTO_INCREMENT для таблицы `reviews`
 --
-ALTER TABLE `review`
+ALTER TABLE `reviews`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT для таблицы `role`
---
-ALTER TABLE `role`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT для таблицы `roles`
@@ -353,9 +279,9 @@ ALTER TABLE `roles`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
--- AUTO_INCREMENT для таблицы `user`
+-- AUTO_INCREMENT для таблицы `users`
 --
-ALTER TABLE `user`
+ALTER TABLE `users`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
@@ -363,36 +289,30 @@ ALTER TABLE `user`
 --
 
 --
--- Ограничения внешнего ключа таблицы `book`
---
-ALTER TABLE `book`
-  ADD CONSTRAINT `book_ibfk_1` FOREIGN KEY (`cover_id`) REFERENCES `cover` (`id`);
-
---
 -- Ограничения внешнего ключа таблицы `books`
 --
 ALTER TABLE `books`
-  ADD CONSTRAINT `books_ibfk_1` FOREIGN KEY (`cover_id`) REFERENCES `covers` (`id`);
+  ADD CONSTRAINT `fk_books_cover_id_covers` FOREIGN KEY (`cover_id`) REFERENCES `covers` (`id`);
 
 --
 -- Ограничения внешнего ключа таблицы `books_genres`
 --
 ALTER TABLE `books_genres`
-  ADD CONSTRAINT `books_genres_ibfk_1` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`),
-  ADD CONSTRAINT `books_genres_ibfk_2` FOREIGN KEY (`genre_id`) REFERENCES `genres` (`id`);
+  ADD CONSTRAINT `fk_books_genres_book_id_books` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`),
+  ADD CONSTRAINT `fk_books_genres_genre_id_genres` FOREIGN KEY (`genre_id`) REFERENCES `genres` (`id`);
 
 --
--- Ограничения внешнего ключа таблицы `review`
+-- Ограничения внешнего ключа таблицы `reviews`
 --
-ALTER TABLE `review`
-  ADD CONSTRAINT `review_ibfk_1` FOREIGN KEY (`book_id`) REFERENCES `book` (`id`),
-  ADD CONSTRAINT `review_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`);
+ALTER TABLE `reviews`
+  ADD CONSTRAINT `fk_reviews_book_id_books` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`),
+  ADD CONSTRAINT `fk_reviews_user_id_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 --
--- Ограничения внешнего ключа таблицы `user`
+-- Ограничения внешнего ключа таблицы `users`
 --
-ALTER TABLE `user`
-  ADD CONSTRAINT `user_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `role` (`id`);
+ALTER TABLE `users`
+  ADD CONSTRAINT `fk_users_role_id_roles` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

@@ -1,22 +1,28 @@
-from flask import render_template, redirect, url_for, request, flash
+from flask import render_template, redirect, url_for, request, flash, Blueprint
+from werkzeug.security import check_password_hash, generate_password_hash
 from functools import wraps
 from flask_login import login_user, current_user, login_required, LoginManager, logout_user
-from app import app, db
-from .models import User
-from .forms import LoginForm
+from models import db
+from models import User
 
-login_manager = LoginManager()
-login_manager.init_app(app)
+bp = Blueprint('auth', __name__, url_prefix='/auth')
 
-@app.route('/login', methods=['GET', 'POST'])
+def init_login_manager(app):
+    login_manager = LoginManager()
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message = 'Для доступа к данной странице необходимо пройти процедуру аутентификации.'
+    login_manager.login_message_category = 'warning'
+    login_manager.user_loader(load_user)
+    login_manager.init_app(app)
+
+@bp.route('/login', methods=['GET', 'POST'])
 def login():
-    form = LoginForm()
-    if form.validate_on_submit():
-        login = form.username.data
-        password = form.password.data
-        remember = form.remember_me.data
+    if request.method == "POST":
+        login = request.form.get('username')
+        password = request.form.get('password')
+        remember = bool(request.form.get('remember_me'))
 
-        user = User.query.filter_by(login=login).first()
+        user = db.session.query(User).filter_by(login=login).scalar()
 
         if user and user.check_password(password):
             login_user(user, remember=remember)
@@ -24,46 +30,30 @@ def login():
             return redirect(url_for('index'))
         else:
             flash('Неправильное имя пользователя или пароль. Пожалуйста, попробуйте еще раз.', 'danger')
+            return redirect(url_for('auth.login'))
 
-    return render_template('login.html', form=form, current_user=current_user)
+    return render_template('login.html', current_user=current_user)
 
-@login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.query(User).filter(User.id == int(user_id)).one()
 
-@app.route('/logout')
+
+@bp.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('index'))
 
-def role_required(*roles):
-    def wrapper(func):
-        @wraps(func)
-        def decorated_view(*args, **kwargs):
-            if current_user.is_authenticated and current_user.role in roles:
-                return func(*args, **kwargs)
-            else:
-                flash('У вас недостаточно прав для выполнения данного действия', 'error')
+def check_perm(rule):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated:
+                flash('Необходимо войти в систему для доступа к данной странице.', 'warning')
+                return redirect(url_for('login'))
+            if not current_user.can(rule):
+                flash('У вас нет прав доступа к данной странице.', 'warning')
                 return redirect(url_for('index'))
-        return decorated_view
-    return wrapper
-
-def custom_login_required(func):
-    @wraps(func)
-    def decorated_view(*args, **kwargs):
-        if not current_user.is_authenticated:
-            flash('Для выполнения данного действия необходимо пройти процедуру аутентификации', 'error')
-            return redirect(url_for('login'))
-        return func(*args, **kwargs)
-    return decorated_view
-
-@app.route('/admin')
-@role_required('admin')
-def admin_dashboard():
-    return render_template('admin_dashboard.html')
-
-@app.route('/moderator')
-@role_required('moderator')
-def moderator_dashboard():
-    return render_template('moderator_dashboard.html')
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator

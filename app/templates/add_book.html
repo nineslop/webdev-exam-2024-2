@@ -1,21 +1,43 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import book_form %}
 {% block content %}
 <h2>Добавить книгу</h2>
-<form method="POST">
-    <label for="title">Название:</label>
-    <input type="text" id="title" name="title">
-    <label for="description">Описание:</label>
-    <textarea id="description" name="description"></textarea>
-    <label for="year">Год:</label>
-    <input type="number" id="year" name="year">
-    <label for="publisher">Издатель:</label>
-    <input type="text" id="publisher" name="publisher">
-    <label for="author">Автор:</label>
-    <input type="text" id="author" name="author">
-    <label for="pages">Количество страниц:</label>
-    <input type="number" id="pages" name="pages">
-    <button type="submit">Добавить</button>
+<form action="{{ url_for('routes.add_book') }}" method="POST" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label for="title" class="form-label">Название</label>
+        <input type="text" class="form-control" id="title" name="title" required>
+    </div>
+    <div class="mb-3">
+        <label for="year" class="form-label">Год</label>
+        <input type="number" class="form-control" id="year" name="year" required>
+    </div>
+    <div class="mb-3">
+        <label for="publisher" class="form-label">Издатель</label>
+        <input type="text" class="form-control" id="publisher" name="publisher" required>
+    </div>
+    <div class="mb-3">
+        <label for="author" class="form-label">Автор</label>
+        <input type="text" class="form-control" id="author" name="author" required>
+    </div>
+    <div class="mb-3">
+        <label for="pages" class="form-label">Количество страниц</label>
+        <input type="number" class="form-control" id="pages" name="pages" required>
+    </div>
+    <div class="mb-3">
+        <label for="description" class="form-label">Описание</label>
+        <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+    </div>
+    <div class="mb-3">
+        <label for="cover" class="form-label">Обложка</label>
+        <input type="file" class="form-control" id="cover" name="cover" required>
+    </div>
+    <div class="mb-3">
+        <label for="genre" class="form-label">Жанр</label>
+        <select class="form-control" id="genre" name="genre">
+            {% for genre in genres %}
+                <option value="{{ genre.id }}">{{ genre.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Добавить книгу</button>
 </form>
-{{ book_form(genres=genres) }}
 {% endblock %}
