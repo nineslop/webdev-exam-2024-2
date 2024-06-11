@@ -5,21 +5,21 @@
     <div class="mb-3">
         <label for="title" class="form-label">Название</label>
         <input type="text" class="form-control" id="title" name="title" required>
-    </div>
-    <div class="mb-3">
-        <label for="year" class="form-label">Год</label>
-        <input type="number" class="form-control" id="year" name="year" required>
-    </div>
-    <div class="mb-3">
-        <label for="publisher" class="form-label">Издатель</label>
-        <input type="text" class="form-control" id="publisher" name="publisher" required>
-    </div>
-    <div class="mb-3">
-        <label for="author" class="form-label">Автор</label>
-        <input type="text" class="form-control" id="author" name="author" required>
-    </div>
-    <div class="mb-3">
-        <label for="pages" class="form-label">Количество страниц</label>
+        </div>
+        <div class="mb-3">
+            <label for="publisher" class="form-label">Издатель</label>
+            <input type="text" class="form-control" id="publisher" name="publisher" required>
+            </div>
+            <div class="mb-3">
+                <label for="author" class="form-label">Автор</label>
+                <input type="text" class="form-control" id="author" name="author" required>
+                </div>
+                <div class="mb-3">
+                    <label for="year" class="form-label">Год</label>
+                    <input type="number" class="form-control" id="year" name="year" required>
+                </div>
+                <div class="mb-3">
+                <label for="pages" class="form-label">Количество страниц</label>
         <input type="number" class="form-control" id="pages" name="pages" required>
     </div>
     <div class="mb-3">
@@ -27,17 +27,17 @@
         <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
     </div>
     <div class="mb-3">
-        <label for="cover" class="form-label">Обложка</label>
-        <input type="file" class="form-control" id="cover" name="cover" required>
-    </div>
-    <div class="mb-3">
-        <label for="genre" class="form-label">Жанр</label>
-        <select class="form-control" id="genre" name="genre">
+        <label for="genres" class="form-label">Жанры</label>
+        <select class="form-control" id="genres" name="genres" multiple required>
             {% for genre in genres %}
-                <option value="{{ genre.id }}">{{ genre.name }}</option>
+            <option value="{{ genre.id }}">{{ genre.name }}</option>
             {% endfor %}
-        </select>
-    </div>
-    <button type="submit" class="btn btn-primary">Добавить книгу</button>
+            </select>
+            </div>
+            <div class="mb-3">
+                <label for="cover" class="form-label">Обложка</label>
+                <input type="file" class="form-control" id="cover" name="cover" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Добавить книгу</button>
 </form>
 {% endblock %}

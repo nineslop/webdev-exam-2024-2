@@ -1,15 +1,17 @@
-from flask import render_template, request, redirect, url_for, flash, Blueprint
+from flask import render_template, request, redirect, url_for, flash, Blueprint, abort
 from flask_login import login_required, current_user
 from auth import check_perm
 from werkzeug.utils import secure_filename
 from models import db, BooksGenres, Book, Review, Genre, Cover
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 import os
 import hashlib
 import bleach
 import config
 
 bp = Blueprint('routes', __name__, url_prefix='/routes')
+
 
 @bp.route('/')
 @bp.route('/index')
@@ -25,27 +27,28 @@ def index():
     ).subquery()
 
     query = db.session.query(
+        Book.id,
         Book.title,
-        func.group_concat(Genre.name.distinct().label('genres')),
         Book.year,
-        subquery.c.average_rating,
-        subquery.c.review_count
+        Genre.name,
+        Cover.filename
     ).join(
         BooksGenres, Book.id == BooksGenres.book_id
     ).join(
         Genre, BooksGenres.genre_id == Genre.id
+    ).join(
+        Cover, Book.cover_id == Cover.id
     ).outerjoin(
         subquery, Book.id == subquery.c.id
-    ).group_by(Book.id, Book.title, Book.year, subquery.c.average_rating, subquery.c.review_count
+    ).group_by(Book.id, Book.title, Book.year, Cover.filename, Genre.name
     ).order_by(Book.year.desc())
 
     page_number = 1
     books_per_page = 10
     books = query.paginate(page=page_number, per_page=books_per_page)
-    for book in books.items:
-        print(book.id, '-------------------------------------')
 
     return render_template('index.html', current_user=current_user, books=books)
+
 
 @bp.route('/book/<int:book_id>')
 def book_detail(book_id):
@@ -95,21 +98,21 @@ def edit_book(book_id):
 def delete_book(book_id):
     book: Book = db.session.query(Book).get_or_404(book_id)
     try:
-        db.session.delete(Review.query.filter_by(book_id=book_id).all())
-        if book.cover:
+        if book.cover_id:
             cover = db.session.query(Cover).get(book.cover_id)
             if cover:
                 try:
                     os.remove(os.path.join(config.UPLOAD_FOLDER, cover.filename))
                     db.session.delete(cover)
-                except:
-                    pass
+                except Exception as e:
+                    flash('Ошибка при удалении обложки: {}'.format(str(e)), 'error')
+        db.session.query(Review).filter_by(book_id=book_id).delete()
         db.session.delete(book)
         db.session.commit()
         flash('Книга успешно удалена.')
     except Exception as e:
         db.session.rollback()
-        flash('При удалении книги возникла ошибка.', 'error')
+        flash('При удалении книги возникла ошибка: {}'.format(str(e)), 'error')
     return redirect(url_for('index'))
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'media', 'images')
@@ -125,7 +128,7 @@ def add_book():
         author = request.form.get('author')
         pages = request.form.get('pages')
         description = request.form.get('description')
-        genre_id = request.form.get('genre')
+        genre_ids = request.form.getlist('genres')
 
         try:
             file = request.files['cover']
@@ -152,10 +155,21 @@ def add_book():
                 cover_id=cover.id
             )
             db.session.add(book)
+            db.session.flush()
+
+            if not genre_ids:
+                flash('Не выбран ни один жанр.', 'error')
+                return render_template('add_book.html', genres=db.session.query(Genre).all())
+
+            for genre_id in genre_ids:
+                print(f'Adding genre {genre_id} to book {book.id}')
+                book_genre = BooksGenres(book_id=book.id, genre_id=genre_id)
+                db.session.add(book_genre)
+
             db.session.commit()
 
             flash('Книга успешно добавлена.')
-            return redirect(url_for('index'))
+            return redirect(url_for('routes.index'))
         except Exception as e:
             db.session.rollback()
             flash(f'При сохранении данных возникла ошибка: {str(e)}. Проверьте корректность введённых данных.', 'error')

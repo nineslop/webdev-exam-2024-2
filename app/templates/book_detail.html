@@ -1,23 +1,16 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>{{ book.title }}</h2>
-<p>{{ book.description }}</p>
-<p>Год: {{ book.year }}</p>
-<p>Издатель: {{ book.publisher }}</p>
-<p>Автор: {{ book.author }}</p>
-<p>Количество страниц: {{ book.pages }}</p>
-<h3>Рецензии</h3>
-<ul>
-    {% for review in book.reviews %}
-    <li>
-        <p>Оценка: {{ review.rating }}</p>
-        <p>{{ review.text }}</p>
-        <p>Автор: {{ review.user.login }}</p>
-        <p>Дата: {{ review.date_added }}</p>
-    </li>
-    {% endfor %}
-</ul>
-{% if current_user.is_authenticated %}
-    <a href="{{ url_for('add_review', book_id=book.id) }}">Добавить рецензию</a>
-{% endif %}
+<div class="card p-4">
+    <div class="card-body">
+        <h2 class="card-title">{{ book.title }}</h2>
+        <img src="{{ url_for('image_path', filename=book.filename) }}" class="card-img-top" alt="">
+        <p class="card-text"><strong>Издатель:</strong> {{ book.publisher }}</p>
+        <p class="card-text"><strong>Автор:</strong> {{ book.author }}</p>
+        <p class="card-text"><strong>Описание:</strong> {{ book.description }}</p>
+        <p class="card-text"><strong>Год:</strong> {{ book.year }}</p>
+        <p class="card-text"><strong>Количество страниц:</strong> {{ book.pages }}</p>
+        <p class="card-text"><strong>Жанр(ы):</strong> {{ book.name }}</p>
+        {#<p class="card-text">Средняя оценка: {{ book.average_rating }}</p>#}
+    </div>
+</div>
 {% endblock %}
