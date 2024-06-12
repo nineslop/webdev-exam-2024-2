@@ -18,8 +18,6 @@ class Base(DeclarativeBase):
 
 db = SQLAlchemy(model_class=Base)
 
-
-
 class User(Base, UserMixin):
     __tablename__ = 'users'
 
@@ -62,7 +60,7 @@ class User(Base, UserMixin):
 class BooksGenres(Base):
     __tablename__ = 'books_genres'
 
-    book_id: Mapped[int] = mapped_column(Integer, ForeignKey('books.id'), primary_key=True)
+    book_id: Mapped[int] = mapped_column(Integer, ForeignKey('books.id', ondelete='CASCADE'), primary_key=True)
     genre_id: Mapped[int] = mapped_column(Integer, ForeignKey('genres.id'), primary_key=True)
 
 
@@ -76,7 +74,7 @@ class Book(Base):
     publisher: Mapped[str] = mapped_column(String(255), nullable=False)
     author: Mapped[str] = mapped_column(String(255), nullable=False)
     pages: Mapped[int] = mapped_column(Integer, nullable=False)
-    cover_id: Mapped[int] = mapped_column(Integer, ForeignKey('covers.id'))
+    cover_id: Mapped[int] = mapped_column(Integer, ForeignKey('covers.id', ondelete='RESTRICT'))
 
 
 class Cover(Base):
@@ -99,11 +97,14 @@ class Review(Base):
     __tablename__ = 'reviews'
 
     id = mapped_column(Integer, primary_key=True)
-    book_id: Mapped[int] = mapped_column(Integer, ForeignKey('books.id'), nullable=False)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id'), nullable=False)
+    book_id: Mapped[int] = mapped_column(Integer, ForeignKey('books.id', ondelete='CASCADE'), nullable=False)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     rating: Mapped[int] = mapped_column(Integer, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     date_added: Mapped[datetime] = mapped_column(DateTime, default=db.func.current_timestamp())
+
+    def prepare_to_html(self):
+        self.text = self.text.replace('\n', '<br>')
 
 
 class Role(Base):

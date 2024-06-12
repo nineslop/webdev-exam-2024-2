@@ -32,7 +32,7 @@ def login():
             flash('Неправильное имя пользователя или пароль. Пожалуйста, попробуйте еще раз.', 'danger')
             return redirect(url_for('auth.login'))
 
-    return render_template('login.html', current_user=current_user)
+    return render_template('auth/login.html', current_user=current_user)
 
 def load_user(user_id):
     return db.session.query(User).filter(User.id == int(user_id)).one()

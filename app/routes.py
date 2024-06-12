@@ -4,7 +4,8 @@ from auth import check_perm
 from werkzeug.utils import secure_filename
 from models import db, BooksGenres, Book, Review, Genre, Cover
 from sqlalchemy import func
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, sessionmaker
+from sqlalchemy.exc import IntegrityError
 import os
 import hashlib
 import bleach
@@ -53,7 +54,10 @@ def index():
 @bp.route('/book/<int:book_id>')
 def book_detail(book_id):
     book = db.session.query(Book).get_or_404(book_id)
-    return render_template('book_detail.html', book=book)
+    genres = db.session.query(Genre).join(BooksGenres).filter(BooksGenres.book_id == book_id).all()
+    cover = db.session.query(Cover).get(book.cover_id)
+    return render_template('books/book_detail.html', book=book, genres=genres, cover=cover)
+
 
 @bp.route('/review/<int:book_id>', methods=['GET', 'POST'])
 @login_required
@@ -90,30 +94,49 @@ def edit_book(book_id):
             db.session.rollback()
             flash('При сохранении данных возникла ошибка. Проверьте корректность введённых данных.', 'error')
             return render_template('edit_book.html', book=book, genres=db.session.query(Genre).all())
-    return render_template('edit_book.html', book=book, genres=db.session.query(Genre).all())
+    return render_template('books/edit_book.html', book=book, genres=db.session.query(Genre).all())
 
-@bp.route('/book/delete/<int:book_id>', methods=['POST'])
+
+@bp.route('/book/delete/<int:book_id>', methods=['GET'])
 @login_required
 @check_perm('delete_book')
 def delete_book(book_id):
-    book: Book = db.session.query(Book).get_or_404(book_id)
     try:
-        if book.cover_id:
-            cover = db.session.query(Cover).get(book.cover_id)
-            if cover:
-                try:
-                    os.remove(os.path.join(config.UPLOAD_FOLDER, cover.filename))
-                    db.session.delete(cover)
-                except Exception as e:
-                    flash('Ошибка при удалении обложки: {}'.format(str(e)), 'error')
-        db.session.query(Review).filter_by(book_id=book_id).delete()
+        try:
+            book = db.session.query(Book).filter(Book.id == book_id).one()
+        except Exception:
+            flash("Запрошенная книга не существует", "danger")
+            return redirect(url_for("routes.index"))
+
         db.session.delete(book)
         db.session.commit()
-        flash('Книга успешно удалена.')
+ 
+        cover = db.session.query(Cover).filter(Cover.id == book.cover_id).one()
+        try:
+            db.session.delete(cover)
+            db.session.commit()
+            try:
+                os.remove(os.path.join(config.UPLOAD_FOLDER, cover.filename))
+            except Exception as e:
+                flash(
+                    f"Возникла ошибка при удалении обложки книги «{book.title}». ({e})",
+                    "danger",
+                )
+                db.session.rollback()
+
+                return redirect(url_for("routes.index"))
+        except Exception:
+            pass
+
+        flash(f"Книга «{book.title}» была успешно удалена!", "success")
+        return redirect(url_for("routes.index"))
     except Exception as e:
+        flash(f"Возникла ошибка при удалении книги «{e}»", "danger")
         db.session.rollback()
-        flash('При удалении книги возникла ошибка: {}'.format(str(e)), 'error')
-    return redirect(url_for('index'))
+
+        return redirect(url_for("routes.index"))
+
+
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'media', 'images')
 
@@ -176,19 +199,3 @@ def add_book():
             return render_template('add_book.html', genres=db.session.query(Genre).all())
 
     return render_template('add_book.html', genres=db.session.query(Genre).all())
-
-
-@bp.route('/book/<int:book_id>/review', methods=['GET', 'POST'])
-@login_required
-def create_review(book_id):
-    if request.method == 'POST':
-        rating = int(request.form.get('rating'))
-        text = request.form.get('text')
-
-        review = Review(book_id=book_id, user_id=current_user.id, rating=rating, text=text)
-        db.session.add(review)
-        db.session.commit()
-        flash('Ваша рецензия была успешно сохранена', 'success')
-        return redirect(url_for('books.view_book', book_id=book_id))
-    
-    return render_template('create_review.html')
