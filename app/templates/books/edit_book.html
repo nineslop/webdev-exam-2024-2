@@ -1,35 +1,8 @@
 {% extends 'base.html' %}
-{% from "books/form.html" import book_form %}
-{{ book_form(genres, url_for('book.add_book'), current_user.can, new_genres, book) }}
+{% from 'books/book_form.html' import book_form %}
 {% block content %}
 <div class="container">
     <h2>Редактировать книгу</h2>
-    <form method="POST" action="{{ url_for('index') }}">
-        <div class="mb-3">
-            <label for="title" class="form-label">Название:</label>
-            <input type="text" class="form-control" id="title" name="title" value="{{ book.title }}">
-        </div>
-        <div class="mb-3">
-            <label for="description" class="form-label">Описание:</label>
-            <textarea class="form-control" id="description" name="description">{{ book.description }}</textarea>
-        </div>
-        <div class="mb-3">
-            <label for="year" class="form-label">Год:</label>
-            <input type="number" class="form-control" id="year" name="year" value="{{ book.year }}">
-        </div>
-        <div class="mb-3">
-            <label for="publisher" class="form-label">Издатель:</label>
-            <input type="text" class="form-control" id="publisher" name="publisher" value="{{ book.publisher }}">
-        </div>
-        <div class="mb-3">
-            <label for="author" class="form-label">Автор:</label>
-            <input type="text" class="form-control" id="author" name="author" value="{{ book.author }}">
-        </div>
-        <div class="mb-3">
-            <label for="pages" class="form-label">Количество страниц:</label>
-            <input type="number" class="form-control" id="pages" name="pages" value="{{ book.pages }}">
-        </div>
-        <button type="submit" class="btn btn-primary">Сохранить</button>
-    </form>
+    {{ book_form(url_for('routes.edit_book', book_id=book.id), book=book, genres=genres) }}
 </div>
 {% endblock %}

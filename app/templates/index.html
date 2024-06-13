@@ -1,15 +1,16 @@
 {% extends 'base.html' %}
+{% from "pagination.html" import render_pagination %}
 {% block content %}
 <h2>Список книг</h2>
 <div class="row row-cols-1 row-cols-md-3 g-4">
-    {% for book in books.items %}
+    {% for book in books %}
     <div class="col">
         <div class="card">
             <img src="{{ url_for('image_path', filename=book.filename) }}" class="card-img-top" alt="">
             <div class="card-body">
                 <div class="text-center">
                     <h5 class="card-title">{{ book.title }}</h5>
-                    <p class="card-text">Жанр(ы): {{ book.name }}</p>
+                    <p class="card-text">Жанр(ы): {{ book.genres }}</p>
                     <p class="card-text">Год выпуска: {{ book.year }}</p>
                     {#<p class="card-text">Средняя оценка: {{ book.average_rating }}</p>#}
                     {#<p class="card-text">Количество рецензий: {{ book.review_count }}</p>#}
@@ -51,15 +52,7 @@
       </div>
     {% endfor %}
 </div>
-<div class="pagination mt-3">
-    {% if books.has_prev %}
-        <a href="{{ url_for('routes.index', page=books.prev_num) }}" class="btn btn-secondary">Предыдущая</a>
-    {% endif %}
-    <span class="mx-2">Страница {{ books.page }} из {{ books.pages }}</span>
-    {% if books.has_next %}
-        <a href="{{ url_for('routes.index', page=books.next_num) }}" class="btn btn-secondary">Следующая</a>
-    {% endif %}
-</div>
+{{ render_pagination(pagination, request.endpoint) }}
 {% if current_user.is_authenticated and current_user.role and current_user.role.name == 'admin' %}
     <div class="text-center mt-3">
         <a href="{{ url_for('routes.add_book') }}" class="btn btn-success">Добавить книгу</a>

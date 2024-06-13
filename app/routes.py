@@ -4,8 +4,7 @@ from auth import check_perm
 from werkzeug.utils import secure_filename
 from models import db, BooksGenres, Book, Review, Genre, Cover
 from sqlalchemy import func
-from sqlalchemy.orm import joinedload, sessionmaker
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import SQLAlchemyError
 import os
 import hashlib
 import bleach
@@ -13,42 +12,58 @@ import config
 
 bp = Blueprint('routes', __name__, url_prefix='/routes')
 
-
 @bp.route('/')
 @bp.route('/index')
 def index():
     page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 6, type=int)
+    offset = (page - 1) * per_page
+
     subquery = db.session.query(
         Book.id,
         func.avg(Review.rating).label('average_rating'),
         func.count(Review.id).label('review_count')
     ).outerjoin(
         Review, Book.id == Review.book_id
-    ).group_by(Book.id
-    ).subquery()
+    ).group_by(Book.id).subquery()
+
+    genre_subquery = db.session.query(
+        BooksGenres.book_id,
+        func.group_concat(Genre.name.op('SEPARATOR')(', ')).label('genres')
+    ).join(
+        Genre, BooksGenres.genre_id == Genre.id
+    ).group_by(BooksGenres.book_id).subquery()
 
     query = db.session.query(
         Book.id,
         Book.title,
         Book.year,
-        Genre.name,
+        genre_subquery.c.genres,
         Cover.filename
-    ).join(
-        BooksGenres, Book.id == BooksGenres.book_id
-    ).join(
-        Genre, BooksGenres.genre_id == Genre.id
+    ).outerjoin(
+        genre_subquery, Book.id == genre_subquery.c.book_id
     ).join(
         Cover, Book.cover_id == Cover.id
     ).outerjoin(
         subquery, Book.id == subquery.c.id
-    ).group_by(Book.id, Book.title, Book.year, Cover.filename, Genre.name
-    ).order_by(Book.year.desc())
+    ).group_by(Book.id, Book.title, Book.year, Cover.filename, genre_subquery.c.genres
+    ).order_by(Book.year.desc()).offset(offset).limit(per_page)
 
-    page_number = 1
-    books_per_page = 10
-    books = query.paginate(page=page_number, per_page=books_per_page)
+    books = query.all()
+    total_books = db.session.query(func.count(Book.id)).scalar()
 
-    return render_template('index.html', current_user=current_user, books=books)
+    pagination = {
+        'page': page,
+        'per_page': per_page,
+        'total': total_books,
+        'pages': total_books // per_page + (1 if total_books % per_page > 0 else 0),
+        'has_prev': page > 1,
+        'has_next': page * per_page < total_books,
+        'next_num': page + 1,
+        'prev_num': page - 1,
+    }
+
+    return render_template('index.html', current_user=current_user, books=books, pagination=pagination)
 
 
 @bp.route('/book/<int:book_id>')
@@ -79,22 +94,44 @@ def add_review(book_id):
 @check_perm("edit_book")
 def edit_book(book_id):
     book = db.session.query(Book).get_or_404(book_id)
+    genres = db.session.query(Genre).all()
+
     if request.method == 'POST':
         try:
+            # Обновление данных книги
             book.title = request.form['title']
             book.description = bleach.clean(request.form['description'])
-            book.year = request.form['year']
+            book.year = int(request.form['year'])
             book.publisher = request.form['publisher']
             book.author = request.form['author']
-            book.pages = request.form['pages']
-            book.genres = db.session.query(Genre).filter(Genre.id.in_(request.form.getlist('genres'))).all()
+            book.pages = int(request.form['pages'])
+            genre_ids = request.form.getlist('genres')
+
+            # Обновление жанров книги
+            # Сначала удалим текущие жанры книги
+            db.session.query(BooksGenres).filter_by(book_id=book.id).delete()
+
+            # Затем добавим новые жанры
+            for genre_id in genre_ids:
+                book_genre = BooksGenres(book_id=book.id, genre_id=genre_id)
+                db.session.add(book_genre)
+
             db.session.commit()
-            return redirect(url_for('book_detail', book_id=book.id))
-        except Exception as e:
+            flash('Книга успешно обновлена', 'success')
+            return redirect(url_for('routes.book_detail', book_id=book.id))
+
+        except SQLAlchemyError as e:
             db.session.rollback()
-            flash('При сохранении данных возникла ошибка. Проверьте корректность введённых данных.', 'error')
-            return render_template('edit_book.html', book=book, genres=db.session.query(Genre).all())
-    return render_template('books/edit_book.html', book=book, genres=db.session.query(Genre).all())
+            flash(f'Ошибка базы данных: {str(e)}', 'error')
+
+        except ValueError as e:
+            flash(f'Некорректное значение: {str(e)}', 'error')
+
+        except Exception as e:
+            flash(f'Неизвестная ошибка: {str(e)}', 'error')
+
+    return render_template('books/edit_book.html', book=book, genres=genres)
+
 
 
 @bp.route('/book/delete/<int:book_id>', methods=['GET'])
@@ -198,4 +235,4 @@ def add_book():
             flash(f'При сохранении данных возникла ошибка: {str(e)}. Проверьте корректность введённых данных.', 'error')
             return render_template('add_book.html', genres=db.session.query(Genre).all())
 
-    return render_template('add_book.html', genres=db.session.query(Genre).all())
+    return render_template('books/add_book.html', genres=db.session.query(Genre).all())

@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% from 'books/book_form.html' import book_form %}
+{% block content %}
+<h2>Добавить книгу</h2>
+{{ book_form(url_for('routes.add_book'), genres=genres) }}
+{% endblock %}
