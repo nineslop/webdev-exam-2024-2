@@ -260,7 +260,7 @@ def add_book():
 
             if not genre_ids:
                 flash('Не выбран ни один жанр.', 'error')
-                return render_template('add_book.html', genres=db.session.query(Genre).all())
+                return render_template('books/add_book.html', genres=db.session.query(Genre).all())
 
             for genre_id in genre_ids:
                 book_genre = BooksGenres(book_id=book.id, genre_id=genre_id)
