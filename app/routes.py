@@ -19,7 +19,6 @@ def index():
     per_page = request.args.get('per_page', 6, type=int)
     offset = (page - 1) * per_page
 
-    # Subquery for reviews
     review_subquery = db.session.query(
         Book.id.label('book_id'),
         func.avg(Review.rating).label('average_rating'),
@@ -28,7 +27,6 @@ def index():
         Review, Book.id == Review.book_id
     ).group_by(Book.id).subquery(name='review_subquery')
 
-    # Subquery for genres
     genre_subquery = db.session.query(
         BooksGenres.book_id,
         func.group_concat(Genre.name.op('SEPARATOR')(', ')).label('genres')
@@ -36,7 +34,6 @@ def index():
         Genre, BooksGenres.genre_id == Genre.id
     ).group_by(BooksGenres.book_id).subquery(name='genre_subquery')
 
-    # Main query
     query = db.session.query(
         Book.id,
         Book.title,
@@ -88,11 +85,9 @@ def book_detail(book_id):
         Review.date_added.desc()
     ).all()
 
-    # Calculate the average rating and review count
     average_rating = db.session.query(func.avg(Review.rating)).filter(Review.book_id == book_id).scalar()
     review_count = db.session.query(func.count(Review.id)).filter(Review.book_id == book_id).scalar()
 
-    # Fetch the current user's review if authenticated
     user_review = None
     if current_user.is_authenticated:
         user_review = db.session.query(Review).filter(Review.book_id == book_id, Review.user_id == current_user.id).first()
