@@ -20,4 +20,37 @@
         </div>
     </div>
 </div>
+
+<div class="mt-5">
+    <h3>Отзывы</h3>
+    {% if reviews %}
+        <ul class="list-group">
+            {% for review in reviews %}
+                <li class="list-group-item">
+                    <h4>{{ review.author_first_name }}</h4>
+                    <strong>Рейтинг:</strong> {{ review.review_rating }}<br>
+                    <strong>Отзыв:</strong> {{ review.review_text|safe }}<br>
+                    <small class="text-muted">Добавлено: {{ review.date_added }}</small>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Отзывов пока нет.</p>
+    {% endif %}
+</div>
+
+<div class="mt-5">
+    {% if current_user.is_authenticated %}
+        {% if user_review %}
+            <div>
+                <h4>Мой отзыв:</h4>
+                <strong>Рейтинг:</strong> {{ user_review.rating }}<br>
+                <strong>Отзыв:</strong> {{ user_review.text|safe }}<br>
+                <small class="text-muted">Добавлено: {{ user_review.date_added }}</small>
+            </div>
+        {% else %}
+            <a href="{{ url_for('routes.add_review', book_id=book.id) }}" class="btn btn-primary">Написать рецензию</a>
+        {% endif %}
+    {% endif %}
+</div>
 {% endblock %}

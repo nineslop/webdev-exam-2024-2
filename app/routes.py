@@ -2,7 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, Blueprint,
 from flask_login import login_required, current_user
 from auth import check_perm
 from werkzeug.utils import secure_filename
-from models import db, BooksGenres, Book, Review, Genre, Cover
+from models import db, BooksGenres, Book, Review, Genre, Cover, User
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 import os
@@ -19,34 +19,38 @@ def index():
     per_page = request.args.get('per_page', 6, type=int)
     offset = (page - 1) * per_page
 
-    subquery = db.session.query(
-        Book.id,
+    # Subquery for reviews
+    review_subquery = db.session.query(
+        Book.id.label('book_id'),
         func.avg(Review.rating).label('average_rating'),
         func.count(Review.id).label('review_count')
     ).outerjoin(
         Review, Book.id == Review.book_id
-    ).group_by(Book.id).subquery()
+    ).group_by(Book.id).subquery(name='review_subquery')
 
+    # Subquery for genres
     genre_subquery = db.session.query(
         BooksGenres.book_id,
         func.group_concat(Genre.name.op('SEPARATOR')(', ')).label('genres')
     ).join(
         Genre, BooksGenres.genre_id == Genre.id
-    ).group_by(BooksGenres.book_id).subquery()
+    ).group_by(BooksGenres.book_id).subquery(name='genre_subquery')
 
+    # Main query
     query = db.session.query(
         Book.id,
         Book.title,
         Book.year,
         genre_subquery.c.genres,
-        Cover.filename
+        Cover.filename,
+        review_subquery.c.average_rating,
+        review_subquery.c.review_count
     ).outerjoin(
         genre_subquery, Book.id == genre_subquery.c.book_id
     ).join(
         Cover, Book.cover_id == Cover.id
     ).outerjoin(
-        subquery, Book.id == subquery.c.id
-    ).group_by(Book.id, Book.title, Book.year, Cover.filename, genre_subquery.c.genres
+        review_subquery, Book.id == review_subquery.c.book_id
     ).order_by(Book.year.desc()).offset(offset).limit(per_page)
 
     books = query.all()
@@ -65,29 +69,79 @@ def index():
 
     return render_template('index.html', current_user=current_user, books=books, pagination=pagination)
 
-
 @bp.route('/book/<int:book_id>')
 def book_detail(book_id):
     book = db.session.query(Book).get_or_404(book_id)
     genres = db.session.query(Genre).join(BooksGenres).filter(BooksGenres.book_id == book_id).all()
     cover = db.session.query(Cover).get(book.cover_id)
-    return render_template('books/book_detail.html', book=book, genres=genres, cover=cover)
 
+    reviews = db.session.query(
+        Review.rating.label('review_rating'),
+        Review.text.label('review_text'),
+        Review.date_added.label('date_added'),
+        User.first_name.label('author_first_name')
+    ).join(
+        User, User.id == Review.user_id
+    ).filter(
+        Review.book_id == book_id
+    ).order_by(
+        Review.date_added.desc()
+    ).all()
+
+    # Calculate the average rating and review count
+    average_rating = db.session.query(func.avg(Review.rating)).filter(Review.book_id == book_id).scalar()
+    review_count = db.session.query(func.count(Review.id)).filter(Review.book_id == book_id).scalar()
+
+    # Fetch the current user's review if authenticated
+    user_review = None
+    if current_user.is_authenticated:
+        user_review = db.session.query(Review).filter(Review.book_id == book_id, Review.user_id == current_user.id).first()
+
+    return render_template(
+        'books/book_detail.html',
+        book=book,
+        genres=genres,
+        cover=cover,
+        reviews=reviews,
+        average_rating=average_rating,
+        review_count=review_count,
+        user_review=user_review
+    )
 
 @bp.route('/review/<int:book_id>', methods=['GET', 'POST'])
 @login_required
 def add_review(book_id):
     if request.method == 'POST':
-        review = Review(
-            book_id=book_id,
-            user_id=current_user.id,
-            rating=request.form['rating'],
-            text=request.form['text']
-        )
-        db.session.add(review)
-        db.session.commit()
-        return redirect(url_for('book_detail', book_id=book_id))
-    return render_template('review_form.html', book_id=book_id)
+        rating = request.form.get('rating')
+        text = bleach.clean(request.form.get('text'))
+
+        if not rating or not text:
+            flash('Все поля должны быть заполнены.', 'error')
+            return redirect(url_for('routes.add_review', book_id=book_id))
+
+        try:
+            rating = int(rating)
+            if rating < 0 or rating > 5:
+                flash('Рейтинг должен быть между 0 и 5.', 'error')
+                return redirect(url_for('routes.add_review', book_id=book_id))
+
+            review = Review(
+                book_id=book_id,
+                user_id=current_user.id,
+                rating=rating,
+                text=bleach.clean(text)
+            )
+            db.session.add(review)
+            db.session.commit()
+            flash('Отзыв добавлен.', 'success')
+            return redirect(url_for('routes.book_detail', book_id=book_id))
+        except ValueError:
+            flash('Рейтинг должен быть числом.', 'error')
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            flash(f'Ошибка базы данных: {str(e)}', 'error')
+
+    return render_template('books/reviews_form.html', book_id=book_id)
 
 @bp.route('/book/edit/<int:book_id>', methods=['GET', 'POST'])
 @login_required
@@ -98,7 +152,6 @@ def edit_book(book_id):
 
     if request.method == 'POST':
         try:
-            # Обновление данных книги
             book.title = request.form['title']
             book.description = bleach.clean(request.form['description'])
             book.year = int(request.form['year'])
@@ -107,11 +160,8 @@ def edit_book(book_id):
             book.pages = int(request.form['pages'])
             genre_ids = request.form.getlist('genres')
 
-            # Обновление жанров книги
-            # Сначала удалим текущие жанры книги
             db.session.query(BooksGenres).filter_by(book_id=book.id).delete()
 
-            # Затем добавим новые жанры
             for genre_id in genre_ids:
                 book_genre = BooksGenres(book_id=book.id, genre_id=genre_id)
                 db.session.add(book_genre)
@@ -131,8 +181,6 @@ def edit_book(book_id):
             flash(f'Неизвестная ошибка: {str(e)}', 'error')
 
     return render_template('books/edit_book.html', book=book, genres=genres)
-
-
 
 @bp.route('/book/delete/<int:book_id>', methods=['GET'])
 @login_required
@@ -173,8 +221,6 @@ def delete_book(book_id):
 
         return redirect(url_for("routes.index"))
 
-
-
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'media', 'images')
 
 @bp.route('/add_book', methods=['GET', 'POST'])
@@ -187,7 +233,7 @@ def add_book():
         publisher = request.form.get('publisher')
         author = request.form.get('author')
         pages = request.form.get('pages')
-        description = request.form.get('description')
+        description = bleach.clean(request.form.get('description'))
         genre_ids = request.form.getlist('genres')
 
         try:
@@ -222,7 +268,6 @@ def add_book():
                 return render_template('add_book.html', genres=db.session.query(Genre).all())
 
             for genre_id in genre_ids:
-                print(f'Adding genre {genre_id} to book {book.id}')
                 book_genre = BooksGenres(book_id=book.id, genre_id=genre_id)
                 db.session.add(book_genre)
 
